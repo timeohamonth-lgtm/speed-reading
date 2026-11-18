@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0f1117">
+<title>Lecture Rapide</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --bg-soft: #171a23;
+    --card: #1c2030;
+    --border: #2a2f42;
+    --text: #e8eaf2;
+    --text-dim: #9aa1b5;
+    --accent: #6c8cff;
+    --accent-soft: rgba(108, 140, 255, .16);
+    --highlight: #ffd166;
+    --danger: #ff6b7a;
+    --radius: 14px;
+    --shadow: 0 10px 30px rgba(0, 0, 0, .35);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body { height: 100%; }
+
+  body {
+    font-family: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+    background: radial-gradient(1200px 600px at 50% -10%, #1c2236 0%, var(--bg) 55%);
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    min-height: 100dvh;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 22px;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 1.05rem;
+    letter-spacing: .3px;
+  }
+
+  .logo .dot {
+    width: 12px; height: 12px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 14px var(--accent);
+  }
+
+  .mode-badge {
+    font-size: .75rem;
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 5px 12px;
+    background: var(--bg-soft);
+    white-space: nowrap;
+  }
+
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 0 18px 18px;
+    gap: 16px;
+  }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+
+  /* ---- Étage 1 : saisie du texte ---- */
+  #inputCard { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+
+  textarea {
+    width: 100%;
+    min-height: 170px;
+    resize: vertical;
+    background: var(--bg-soft);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    font-size: 1rem;
+    line-height: 1.6;
+    font-family: inherit;
+    outline: none;
+    transition: border-color .15s ease;
+  }
+
+  textarea:focus { border-color: var(--accent); }
+  textarea::placeholder { color: #5b6178; }
+
+  .input-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+
+  .btn {
+    appearance: none;
+    border: 1px solid var(--border);
+    background: var(--bg-soft);
+    color: var(--text);
+    border-radius: 10px;
+    padding: 11px 18px;
+    font-size: .95rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: transform .08s ease, background .15s ease, border-color .15s ease;
+    user-select: none;
+  }
+
+  .btn:hover { background: #20263a; border-color: #3a4160; }
+  .btn:active { transform: scale(.96); }
+  .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .btn-primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #0d1020;
+  }
+  .btn-primary:hover { background: #7f9bff; border-color: #7f9bff; }
+
+  .btn-ghost-danger { color: var(--danger); }
+  .btn-ghost-danger:hover { border-color: var(--danger); }
+
+  .word-stats {
+    margin-left: auto;
+    font-size: .85rem;
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+
+  .hint { font-size: .8rem; color: var(--text-dim); }
+
+  /* ---- Étage 2 : lecteur ---- */
+  #readerCard {
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    flex: 1;
+    min-height: 340px;
+  }
+
+  #readerCard.active { display: flex; }
+
+  .reader-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .speed-box {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .speed-value {
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    color: var(--accent);
+    min-width: 96px;
+    font-size: .95rem;
+    white-space: nowrap;
+  }
+
+  input[type="range"] {
+    flex: 1;
+    appearance: none;
+    -webkit-appearance: none;
+    height: 6px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--accent) var(--fill, 30%), var(--border) var(--fill, 30%));
+    outline: none;
+    cursor: pointer;
+    min-width: 60px;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: #fff;
+    border: 3px solid var(--accent);
+    cursor: grab;
+    box-shadow: 0 2px 8px rgba(0,0,0,.4);
+  }
+
+  input[type="range"]::-moz-range-thumb {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    border: 3px solid var(--accent);
+    cursor: grab;
+  }
+
+  .counter {
+    font-variant-numeric: tabular-nums;
+    color: var(--text-dim);
+    font-size: .9rem;
+    white-space: nowrap;
+  }
+
+  .counter b { color: var(--text); }
+
+  /* Zone d'affichage centrale */
+  .word-stage {
+    position: relative;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 150px;
+    padding: 26px 14px;
+    overflow: hidden;
+  }
+
+  .word-stage::before,
+  .word-stage::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    transform: translateX(-1px);
+    width: 2px;
+    height: 16px;
+    background: var(--border);
+  }
+  .word-stage::before { top: 8px; }
+  .word-stage::after { bottom: 8px; }
+
+  #wordDisplay {
+    font-size: clamp(2rem, 7vw, 4rem);
+    font-weight: 600;
+    letter-spacing: .5px;
+    text-align: center;
+    max-width: 100%;
+    word-break: break-word;
+    animation: popIn .12s ease-out;
+  }
+
+  #wordDisplay .orp { color: var(--highlight); }
+
+  @keyframes popIn {
+    from { opacity: .25; transform: scale(.97); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  /* Barre de progression */
+  .progress-track {
+    height: 10px;
+    background: var(--bg-soft);
+    cursor: pointer;
+    position: relative;
+  }
+
+  #progressBar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #5f7dff, var(--accent));
+    border-radius: 0 999px 999px 0;
+    transition: width .08s linear;
+  }
+
+  .reader-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 16px;
+    border-top: 1px solid var(--border);
+  }
+
+  .icon-btn {
+    appearance: none;
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--bg-soft);
+    color: var(--text);
+    font-size: 1.25rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform .08s ease, background .15s ease, border-color .15s ease;
+    user-select: none;
+  }
+  .icon-btn:hover { background: #20263a; border-color: #3a4160; }
+  .icon-btn:active { transform: scale(.92); }
+  .icon-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .icon-btn.main {
+    width: 64px; height: 64px;
+    font-size: 1.5rem;
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #0d1020;
+  }
+  .icon-btn.main:hover { background: #7f9bff; }
+
+  .status-pill {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: .72rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    background: var(--bg-soft);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 4px 12px;
+    transition: color .2s ease;
+  }
+
+  .status-pill.playing { color: var(--accent); border-color: var(--accent); }
+  .status-pill.done { color: #9be49b; border-color: #3f7a4a; }
+
+  .shortcuts {
+    text-align: center;
+    font-size: .75rem;
+    color: var(--text-dim);
+    padding: 0 18px 14px;
+  }
+  .shortcuts kbd {
+    background: var(--bg-soft);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 2px 7px;
+    font-family: inherit;
+    font-size: .72rem;
+  }
+
+  footer { text-align: center; font-size: .75rem; color: #4c5266; padding: 8px 0 16px; }
+
+  /* Toast */
+  #toast {
+    position: fixed;
+    left: 50%;
+    bottom: 24px;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--card);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 20px;
+    box-shadow: var(--shadow);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .25s ease, transform .25s ease;
+    z-index: 50;
+    font-size: .9rem;
+    max-width: 90vw;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  @media (max-width: 560px) {
+    header { padding: 12px 14px; }
+    .word-stats { margin-left: 0; width: 100%; }
+    .counter { display: none; }
+    .reader-bottom { gap: 8px; }
+    .icon-btn { width: 46px; height: 46px; }
+    .icon-btn.main { width: 58px; height: 58px; }
+    #inputCard { padding: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo"><span class="dot"></span> Lecture Rapide</div>
+  <div class="mode-badge" id="editBadge">✏️ Mode saisie</div>
+</header>
+
+<main>
+  <!-- Saisie du texte -->
+  <section class="card" id="inputCard">
+    <textarea id="textInput" placeholder="Collez ou saisissez votre texte ici…&#10;&#10;Exemple : collez un article entier, puis cliquez sur Démarrer pour le lire mot par mot à grande vitesse."></textarea>
+    <div class="input-actions">
+      <button class="btn btn-primary" id="startBtn">▶️ Démarrer</button>
+      <button class="btn" id="clearBtn">🗑️ Effacer</button>
+      <span class="word-stats" id="wordStats">0 mot</span>
+    </div>
+    <div class="hint">Astuce : un texte de plusieurs milliers de mots est lu sans ralentissement — tout est prétraité à l'avance.</div>
+  </section>
+
+  <!-- Lecteur -->
+  <section class="card" id="readerCard">
+    <div class="reader-top">
+      <div class="speed-box">
+        <span class="speed-value" id="speedLabel">300 mots/min</span>
+        <input type="range" id="speedRange" min="50" max="900" step="10" value="300" aria-label="Vitesse de lecture en mots par minute">
+      </div>
+      <span class="counter"><b id="readCount">0</b> / <span id="totalCount">0</span> mots</span>
+    </div>
+
+    <div class="word-stage">
+      <span class="status-pill" id="statusPill">En pause</span>
+      <div id="wordDisplay" aria-live="assertive"></div>
+    </div>
+
+    <div class="progress-track" id="progressTrack" title="Cliquer pour naviguer">
+      <div id="progressBar"></div>
+    </div>
+
+    <div class="reader-bottom">
+      <button class="icon-btn" id="restartBtn" title="Recommencer depuis le début (R)">🔄</button>
+      <button class="icon-btn" id="prevBtn" title="Mot précédent (←)">⏮️</button>
+      <button class="icon-btn main" id="toggleBtn" title="Lecture / Pause (Espace)">▶️</button>
+      <button class="icon-btn" id="nextBtn" title="Mot suivant (→)">⏭️</button>
+      <button class="icon-btn" id="exitBtn" title="Modifier le texte (Échap)">✏️</button>
+    </div>
+    <div class="shortcuts">
+      <kbd>Espace</kbd> lecture/pause &nbsp;·&nbsp; <kbd>←</kbd><kbd>→</kbd> mot précédent/suivant &nbsp;·&nbsp; <kbd>↑</kbd><kbd>↓</kbd> vitesse &nbsp;·&nbsp; <kbd>R</kbd> recommencer
+    </div>
+  </section>
+</main>
+
+<div id="toast" role="status"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ---------- Éléments ---------- */
+  var $ = function (id) { return document.getElementById(id); };
+  var textInput    = $("textInput");
+  var startBtn     = $("startBtn");
+  var clearBtn     = $("clearBtn");
+  var wordStats    = $("wordStats");
+  var inputCard    = $("inputCard");
+  var readerCard   = $("readerCard");
+  var editBadge    = $("editBadge");
+  var wordDisplay  = $("wordDisplay");
+  var statusPill   = $("statusPill");
+  var toggleBtn    = $("toggleBtn");
+  var prevBtn      = $("prevBtn");
+  var nextBtn      = $("nextBtn");
+  var restartBtn   = $("restartBtn");
+  var exitBtn      = $("exitBtn");
+  var speedRange   = $("speedRange");
+  var speedLabel   = $("speedLabel");
+  var readCount    = $("readCount");
+  var totalCount   = $("totalCount");
+  var progressBar  = $("progressBar");
+  var progressTrack = $("progressTrack");
+  var toast        = $("toast");
+
+  /* ---------- État ---------- */
+  var words = [];            // tableau des mots prétraité (pas de re-traitement pendant la lecture)
+  var index = 0;
+  var playing = false;
+  var finished = false;
+  var timerId = null;
+
+  var MIN_WPM = 50, MAX_WPM = 900, STEP = 10;
+
+  /* ---------- Utilitaires ---------- */
+  var toastTimer = null;
+  function showToast(msg) {
+    toast.textContent = msg;
+    toast.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toast.classList.remove("show"); }, 1800);
+  }
+
+  function getWPM() {
+    var v = parseInt(speedRange.value, 10);
+    if (isNaN(v) || v < MIN_WPM) v = MIN_WPM;
+    if (v > MAX_WPM) v = MAX_WPM;
+    return v;
+  }
+
+  function setWPM(v, notify) {
+    v = Math.max(MIN_WPM, Math.min(MAX_WPM, Math.round(v / STEP) * STEP));
+    speedRange.value = v;
+    var pct = ((v - MIN_WPM) / (MAX_WPM - MIN_WPM)) * 100;
+    speedRange.style.setProperty("--fill", pct + "%");
+    speedLabel.textContent = v + " mots/min";
+    if (notify) showToast("Vitesse : " + v + " mots/min");
+    // Si la vitesse change pendant la lecture, on réduit simplement l'intervalle du prochain tick.
+    if (playing) scheduleNext(true);
+  }
+
+  /* Découpe le texte une seule fois : performance constante même sur de très longs textes. */
+  function tokenize(text) {
+    return text
+      .replace(/\s+/g, " ")
+      .trim()
+      .split(" ")
+      .filter(function (w) { return w.length > 0; });
+  }
+
+  function countWords(text) {
+    var t = text.trim();
+    return t ? t.split(/\s+/).length : 0;
+  }
+
+  function updateInputStats() {
+    var n = countWords(textInput.value);
+    wordStats.textContent = n + (n > 1 ? " mots" : " mot");
+    return n;
+  }
+
+  /* Surligne le point conventionnel (ORP) pour guider l'œil. */
+  function renderWord(w) {
+    var len = w.length;
+    var orpIndex = len <= 1 ? 0 : (len <= 5 ? 1 : (len <= 9 ? 2 : 3));
+    var safe = document.createDocumentFragment();
+    safe.appendChild(document.createTextNode(w.slice(0, orpIndex)));
+    var span = document.createElement("span");
+    span.className = "orp";
+    span.textContent = w.slice(orpIndex, orpIndex + 1);
+    safe.appendChild(span);
+    safe.appendChild(document.createTextNode(w.slice(orpIndex + 1)));
+    wordDisplay.textContent = "";
+    wordDisplay.appendChild(safe);
+  }
+
+  function updateProgress() {
+    var done = Math.min(index, words.length);
+    readCount.textContent = done;
+    progressBar.style.width = (words.length ? (done / words.length) * 100 : 0) + "%";
+  }
+
+  function setStatus(mode) {
+    statusPill.classList.remove("playing", "done");
+    if (mode === "playing") { statusPill.classList.add("playing"); statusPill.textContent = "Lecture"; }
+    else if (mode === "done") { statusPill.classList.add("done"); statusPill.textContent = "Terminé"; }
+    else statusPill.textContent = "En pause";
+  }
+
+  /* ---------- Boucle de lecture (dérive corrigée : le timing reste exact sur la durée) ---------- */
+  function interval() { return 60000 / getWPM(); }
+
+  function showWord() {
+    if (words.length === 0) return;
+    renderWord(words[index]);
+    updateProgress();
+  }
+
+  function tick() {
+    index++;
+    if (index >= words.length) {
+      index = words.length - 1;
+      showWord();
+      finish();
+      return;
+    }
+    showWord();
+    scheduleNext();
+  }
+
+  function scheduleNext(reset) {
+    clearTimeout(timerId);
+    if (playing) timerId = setTimeout(tick, interval());
+  }
+
+  function finish() {
+    playing = false;
+    finished = true;
+    clearTimeout(timerId);
+    toggleBtn.textContent = "🔄";
+    setStatus("done");
+  }
+
+  /* ---------- Contrôles ---------- */
+  function start() {
+    var n = updateInputStats();
+    if (n === 0) { showToast("Saisissez ou collez d'abord un texte."); textInput.focus(); return; }
+    words = tokenize(textInput.value);
+    totalCount.textContent = words.length;
+    index = 0;
+    finished = false;
+    inputCard.style.display = "none";
+    readerCard.classList.add("active");
+    editBadge.textContent = "📖 Mode lecture";
+    showWord();
+    setWPM(getWPM());
+    play();
+    showToast("Espace = lecture/pause · ← → = naviguer");
+  }
+
+  function play() {
+    if (words.length === 0) return;
+    if (finished) { restart(); return; }
+    playing = true;
+    toggleBtn.textContent = "⏸️";
+    setStatus("playing");
+    scheduleNext();
+  }
+
+  function pause() {
+    playing = false;
+    clearTimeout(timerId);
+    toggleBtn.textContent = "▶️";
+    setStatus("paused");
+  }
+
+  function toggle() { playing ? pause() : play(); }
+
+  function prevWord() {
+    if (!words.length) return;
+    finished = false;
+    index = Math.max(0, index - 1);
+    showWord();
+    if (playing) scheduleNext(true);
+  }
+
+  function nextWord() {
+    if (!words.length) return;
+    if (index >= words.length - 1) { showWord(); finish(); return; }
+    finished = false;
+    index++;
+    showWord();
+    if (playing) scheduleNext(true);
+  }
+
+  function restart() {
+    if (!words.length) return;
+    clearTimeout(timerId);
+    index = 0;
+    finished = false;
+    showWord();
+    toggleBtn.textContent = "⏸️";
+    setStatus("playing");
+    playing = true;
+    scheduleNext(true);
+  }
+
+  function edit() {
+    pause();
+    readerCard.classList.remove("active");
+    inputCard.style.display = "flex";
+    editBadge.textContent = "✏️ Mode saisie";
+    updateInputStats();
+  }
+
+  /* ---------- Événements ---------- */
+  startBtn.addEventListener("click", start);
+
+  clearBtn.addEventListener("click", function () {
+    textInput.value = "";
+    updateInputStats();
+    textInput.focus();
+  });
+
+  textInput.addEventListener("input", updateInputStats);
+
+  toggleBtn.addEventListener("click", toggle);
+  prevBtn.addEventListener("click", prevWord);
+  nextBtn.addEventListener("click", nextWord);
+  restartBtn.addEventListener("click", restart);
+  exitBtn.addEventListener("click", edit);
+
+  speedRange.addEventListener("input", function () { setWPM(parseInt(speedRange.value, 10), false); });
+
+  /* Navigation en cliquant sur la barre de progression */
+  progressTrack.addEventListener("click", function (e) {
+    if (!words.length) return;
+    var rect = progressTrack.getBoundingClientRect();
+    var ratio = (e.clientX - rect.left) / rect.width;
+    finished = false;
+    index = Math.max(0, Math.min(words.length - 1, Math.round(ratio * (words.length - 1))));
+    showWord();
+    if (playing) scheduleNext(true);
+  });
+
+  /* Raccourcis clavier */
+  document.addEventListener("keydown", function (e) {
+    var typing = document.activeElement === textInput;
+    if (typing && e.key !== "Escape") return;
+
+    switch (e.key) {
+      case " ":
+        e.preventDefault();
+        if (readerCard.classList.contains("active")) toggle();
+        else start();
+        break;
+      case "ArrowLeft":
+        e.preventDefault(); prevWord(); break;
+      case "ArrowRight":
+        e.preventDefault(); nextWord(); break;
+      case "ArrowUp":
+        e.preventDefault(); setWPM(getWPM() + STEP, true); break;
+      case "ArrowDown":
+        e.preventDefault(); setWPM(getWPM() - STEP, true); break;
+      case "r": case "R":
+        if (readerCard.classList.contains("active")) restart();
+        break;
+      case "Escape":
+        if (readerCard.classList.contains("active")) edit();
+        break;
+    }
+  });
+
+  /* Pause automatique quand l'onglet passe en arrière-plan (aucun mot manqué) */
+  document.addEventListener("visibilitychange", function () {
+    if (document.hidden && playing) pause();
+  });
+
+  /* ---------- Initialisation ---------- */
+  setWPM(300, false);
+  updateInputStats();
+})();
+</script>
+</body>
+</html>
