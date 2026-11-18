@@ -176,13 +176,20 @@
     border-bottom: 1px solid var(--border);
   }
 
-  .speed-box {
+  .speed-section {
     display: flex;
     align-items: center;
-    gap: 12px;
-    flex: 1;
-    min-width: 0;
+    gap: 14px;
+    padding: 12px 20px 2px;
   }
+
+  .time-row {
+    display: flex;
+    justify-content: center;
+    padding: 6px 16px 10px;
+  }
+
+  .time-row .time-stats { font-weight: 600; }
 
   .speed-value {
     font-variant-numeric: tabular-nums;
@@ -389,7 +396,7 @@
     header { padding: 12px 14px; }
     .word-stats { margin-left: 0; width: 100%; }
     .time-stats { font-size: .8rem; }
-    .counter { display: none; }
+    .reader-top .counter { display: none; }
     .reader-bottom { gap: 8px; }
     .icon-btn { width: 46px; height: 46px; }
     .icon-btn.main { width: 58px; height: 58px; }
@@ -420,17 +427,21 @@
   <!-- Lecteur -->
   <section class="card" id="readerCard">
     <div class="reader-top">
-      <div class="speed-box">
-        <span class="speed-value" id="speedLabel">300 mots/min</span>
-        <input type="range" id="speedRange" min="50" max="900" step="10" value="300" aria-label="Vitesse de lecture en mots par minute">
-      </div>
       <span class="counter"><b id="readCount">0</b> / <span id="totalCount">0</span> mots</span>
-      <span class="counter time-stats" id="timeLeft" title="Temps restant estimé">⏱️ —</span>
     </div>
 
     <div class="word-stage">
       <span class="status-pill" id="statusPill">En pause</span>
       <div id="wordDisplay" aria-live="assertive"></div>
+    </div>
+
+    <div class="speed-section">
+      <input type="range" id="speedRange" min="50" max="900" step="10" value="300" aria-label="Vitesse de lecture en mots par minute">
+      <span class="speed-value" id="speedLabel">300 mots/min</span>
+    </div>
+
+    <div class="time-row">
+      <span class="counter time-stats" id="timeLeft" title="Temps restant estimé">⏱️ —</span>
     </div>
 
     <div class="progress-track" id="progressTrack" title="Cliquer pour naviguer">
