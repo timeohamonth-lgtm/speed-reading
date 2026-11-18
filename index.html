@@ -575,6 +575,11 @@
     return (60000 / getWPM()) * ((words.length - i) + (suffixPause[i] || 0)) / 1000;
   }
 
+  function countWords(text) {
+    var t = text.trim();
+    return t ? t.split(/\s+/).length : 0;
+  }
+
   function updateInputStats() {
     var n = countWords(textInput.value);
     wordStats.textContent = n + (n > 1 ? " mots" : " mot");
