@@ -148,6 +148,12 @@
     white-space: nowrap;
   }
 
+  .time-stats {
+    font-size: .85rem;
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+
   .hint { font-size: .8rem; color: var(--text-dim); }
 
   /* ---- Étage 2 : lecteur ---- */
@@ -382,6 +388,7 @@
   @media (max-width: 560px) {
     header { padding: 12px 14px; }
     .word-stats { margin-left: 0; width: 100%; }
+    .time-stats { font-size: .8rem; }
     .counter { display: none; }
     .reader-bottom { gap: 8px; }
     .icon-btn { width: 46px; height: 46px; }
@@ -405,6 +412,7 @@
       <button class="btn btn-primary" id="startBtn">▶️ Démarrer</button>
       <button class="btn" id="clearBtn">🗑️ Effacer</button>
       <span class="word-stats" id="wordStats">0 mot</span>
+      <span class="time-stats" id="timeStats">⏱️ —</span>
     </div>
     <div class="hint">Astuce : un texte de plusieurs milliers de mots est lu sans ralentissement — tout est prétraité à l'avance.</div>
   </section>
@@ -417,6 +425,7 @@
         <input type="range" id="speedRange" min="50" max="900" step="10" value="300" aria-label="Vitesse de lecture en mots par minute">
       </div>
       <span class="counter"><b id="readCount">0</b> / <span id="totalCount">0</span> mots</span>
+      <span class="counter time-stats" id="timeLeft" title="Temps restant estimé">⏱️ —</span>
     </div>
 
     <div class="word-stage">
@@ -470,9 +479,13 @@
   var progressBar  = $("progressBar");
   var progressTrack = $("progressTrack");
   var toast        = $("toast");
+  var timeStats    = $("timeStats");
+  var timeLeft     = $("timeLeft");
 
   /* ---------- État ---------- */
   var words = [];            // tableau des mots prétraité (pas de re-traitement pendant la lecture)
+  var pauseFactor = [];      // pause supplémentaire après chaque mot (proportion de l'intervalle de base)
+  var suffixPause = [];      // somme cumulée des pauses restantes : estimation du temps en O(1)
   var index = 0;
   var playing = false;
   var finished = false;
@@ -507,23 +520,70 @@
     if (playing) scheduleNext(true);
   }
 
-  /* Découpe le texte une seule fois : performance constante même sur de très longs textes. */
+  /* Découpe le texte une seule fois, en conservant les sauts de paragraphe. */
   function tokenize(text) {
-    return text
-      .replace(/\s+/g, " ")
-      .trim()
-      .split(" ")
-      .filter(function (w) { return w.length > 0; });
+    var tokens = [], re = /\S+/g, m, prevEnd = 0;
+    while ((m = re.exec(text))) {
+      tokens.push({ word: m[0], para: /\n/.test(text.slice(prevEnd, m.index)) });
+      prevEnd = m.index + m[0].length;
+    }
+    return tokens;
   }
 
-  function countWords(text) {
-    var t = text.trim();
-    return t ? t.split(/\s+/).length : 0;
+  /* Pause naturelle selon la ponctuation finale du mot (en proportion de l'intervalle de base). */
+  var PAUSE_COMMA = 0.35, PAUSE_SENTENCE = 0.8, PAUSE_PARAGRAPH = 1.5;
+  function punctuationPause(word) {
+    if (/[.!?…]["»”’)]*$/.test(word)) return PAUSE_SENTENCE;
+    if (/[;:]["»”’)]*$/.test(word)) return 0.55;
+    if (/,["»”’)]*$/.test(word)) return PAUSE_COMMA;
+    if (/[-–—]["»”’)]*$/.test(word)) return 0.25;
+    return 0;
+  }
+
+  /* Analyse complète : mots + pauses. Utilisée pour la lecture ET l'estimation de temps. */
+  function buildAnalysis(text) {
+    var tokens = tokenize(text);
+    var analysis = { words: [], pauses: [] };
+    for (var i = 0; i < tokens.length; i++) {
+      var extra = punctuationPause(tokens[i].word);
+      if (i + 1 < tokens.length && tokens[i + 1].para) extra = PAUSE_PARAGRAPH;
+      analysis.words.push(tokens[i].word);
+      analysis.pauses.push(extra);
+    }
+    return analysis;
+  }
+
+  function estimateSecondsOf(pauses, from, wpm) {
+    var base = 60000 / wpm, total = 0;
+    for (var i = Math.max(0, from); i < pauses.length; i++) total += base * (1 + pauses[i]);
+    return total / 1000;
+  }
+
+  function fmtDuration(sec) {
+    sec = Math.round(sec);
+    if (sec < 60) return sec + " s";
+    var min = Math.floor(sec / 60), s = Math.round(sec % 60);
+    if (s === 60) { min++; s = 0; }
+    if (min < 60) return min + " min" + (s ? " " + s + " s" : "");
+    return Math.floor(min / 60) + " h " + String(min % 60).padStart(2, "0") + " min";
+  }
+
+  /* Temps restant estimé à partir de l'index courant — O(1) grâce à suffixPause. */
+  function remainingSeconds() {
+    if (!words.length) return 0;
+    var i = Math.min(index, words.length - 1);
+    return (60000 / getWPM()) * ((words.length - i) + (suffixPause[i] || 0)) / 1000;
   }
 
   function updateInputStats() {
     var n = countWords(textInput.value);
     wordStats.textContent = n + (n > 1 ? " mots" : " mot");
+    if (n > 0) {
+      var est = estimateSecondsOf(buildAnalysis(textInput.value).pauses, 0, getWPM());
+      timeStats.textContent = "⏱️ ≈ " + fmtDuration(est) + " à " + getWPM() + " mots/min";
+    } else {
+      timeStats.textContent = "⏱️ —";
+    }
     return n;
   }
 
@@ -546,6 +606,7 @@
     var done = Math.min(index, words.length);
     readCount.textContent = done;
     progressBar.style.width = (words.length ? (done / words.length) * 100 : 0) + "%";
+    timeLeft.textContent = "⏱️ ≈ " + fmtDuration(remainingSeconds());
   }
 
   function setStatus(mode) {
@@ -578,7 +639,10 @@
 
   function scheduleNext(reset) {
     clearTimeout(timerId);
-    if (playing) timerId = setTimeout(tick, interval());
+    if (playing) {
+      var extra = (pauseFactor[index] || 0);
+      timerId = setTimeout(tick, interval() * (1 + extra));
+    }
   }
 
   function finish() {
@@ -593,7 +657,12 @@
   function start() {
     var n = updateInputStats();
     if (n === 0) { showToast("Saisissez ou collez d'abord un texte."); textInput.focus(); return; }
-    words = tokenize(textInput.value);
+    var analysis = buildAnalysis(textInput.value);
+    words = analysis.words;
+    pauseFactor = analysis.pauses;
+    suffixPause = new Array(words.length + 1);
+    suffixPause[words.length] = 0;
+    for (var p = words.length - 1; p >= 0; p--) suffixPause[p] = suffixPause[p + 1] + (pauseFactor[p] || 0);
     totalCount.textContent = words.length;
     index = 0;
     finished = false;
@@ -678,7 +747,10 @@
   restartBtn.addEventListener("click", restart);
   exitBtn.addEventListener("click", edit);
 
-  speedRange.addEventListener("input", function () { setWPM(parseInt(speedRange.value, 10), false); });
+  speedRange.addEventListener("input", function () {
+    setWPM(parseInt(speedRange.value, 10), false);
+    if (words.length) updateProgress();
+  });
 
   /* Navigation en cliquant sur la barre de progression */
   progressTrack.addEventListener("click", function (e) {
